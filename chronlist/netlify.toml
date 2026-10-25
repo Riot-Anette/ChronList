@@ -1,0 +1,6 @@
+[build]
+  publish = "public"
+
+# A buildless app. Never publish backend/, tests/, or docs/.
+[build.processing]
+  skip_processing = true

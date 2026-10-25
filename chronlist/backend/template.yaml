@@ -1,0 +1,128 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: ChronList authenticated per-user tasks API. Reuses the existing Cognito pool.
+Parameters:
+  UserPoolId:
+    Type: String
+    Default: eu-west-1_AdIsl4W6Q
+  AppClientId:
+    Type: String
+    Default: 2j79ldhv77qnmtib08t662149r
+  FrontendOrigin:
+    Type: String
+    Default: https://vocal-pavlova-b436d6.netlify.app
+    AllowedPattern: 'https://[A-Za-z0-9.-]+'
+  AlertEmail:
+    Type: String
+    Default: ''
+    Description: Optional email for operational alarms. Confirm the SNS subscription email.
+Conditions:
+  HasAlertEmail: !Not [!Equals [!Ref AlertEmail, '']]
+Resources:
+  Tasks:
+    Type: AWS::DynamoDB::Table
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - {AttributeName: userId, AttributeType: S}
+        - {AttributeName: taskId, AttributeType: S}
+      KeySchema:
+        - {AttributeName: userId, KeyType: HASH}
+        - {AttributeName: taskId, KeyType: RANGE}
+      SSESpecification: {SSEEnabled: true}
+      PointInTimeRecoverySpecification: {PointInTimeRecoveryEnabled: true}
+  Api:
+    Type: AWS::Serverless::HttpApi
+    Properties:
+      StageName: '$default'
+      CorsConfiguration:
+        AllowOrigins: [!Ref FrontendOrigin]
+        AllowHeaders: [Authorization, Content-Type]
+        AllowMethods: [GET, PUT, DELETE, OPTIONS]
+        MaxAge: 600
+      DefaultRouteSettings:
+        ThrottlingBurstLimit: 20
+        ThrottlingRateLimit: 10
+      Auth:
+        DefaultAuthorizer: CognitoJwt
+        Authorizers:
+          CognitoJwt:
+            IdentitySource: '$request.header.Authorization'
+            AuthorizationScopes: [openid]
+            JwtConfiguration:
+              issuer: !Sub 'https://cognito-idp.${AWS::Region}.amazonaws.com/${UserPoolId}'
+              audience: [!Ref AppClientId]
+  TasksFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: .
+      Handler: handler.handler
+      Runtime: python3.13
+      MemorySize: 256
+      Timeout: 15
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref Tasks
+          CLIENT_ID: !Ref AppClientId
+      Policies:
+        - Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action: [dynamodb:Query, dynamodb:GetItem, dynamodb:PutItem, dynamodb:DeleteItem]
+              Resource: !GetAtt Tasks.Arn
+      Events:
+        List:
+          Type: HttpApi
+          Properties: {ApiId: !Ref Api, Path: /tasks, Method: GET, PayloadFormatVersion: '2.0'}
+        Put:
+          Type: HttpApi
+          Properties: {ApiId: !Ref Api, Path: '/tasks/{id}', Method: PUT, PayloadFormatVersion: '2.0'}
+        Delete:
+          Type: HttpApi
+          Properties: {ApiId: !Ref Api, Path: '/tasks/{id}', Method: DELETE, PayloadFormatVersion: '2.0'}
+  FunctionLogs:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub '/aws/lambda/${TasksFunction}'
+      RetentionInDays: 30
+  Alerts:
+    Type: AWS::SNS::Topic
+    Condition: HasAlertEmail
+    Properties:
+      Subscription:
+        - {Endpoint: !Ref AlertEmail, Protocol: email}
+  FunctionErrors:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmDescription: ChronList task API returned function-level errors.
+      Namespace: AWS/Lambda
+      MetricName: Errors
+      Dimensions: [{Name: FunctionName, Value: !Ref TasksFunction}]
+      Statistic: Sum
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 1
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: notBreaching
+      AlarmActions: !If [HasAlertEmail, [!Ref Alerts], !Ref 'AWS::NoValue']
+  ApiServerErrors:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmDescription: ChronList API 5xx responses (includes handled storage failures).
+      Namespace: AWS/ApiGateway
+      MetricName: 5xx
+      Dimensions: [{Name: ApiId, Value: !Ref Api}]
+      Statistic: Sum
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 3
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: notBreaching
+      AlarmActions: !If [HasAlertEmail, [!Ref Alerts], !Ref 'AWS::NoValue']
+Outputs:
+  ApiUrl:
+    Value: !Sub 'https://${Api}.execute-api.${AWS::Region}.amazonaws.com'
+  TableName:
+    Value: !Ref Tasks

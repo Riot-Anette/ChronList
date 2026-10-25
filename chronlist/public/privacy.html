@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex">
+  <title>Privacy and data — ChronList</title>
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+
+<body>
+  <main class="privacy-page">
+    <a href="/">← Back to ChronList</a>
+
+    <h1>Privacy &amp; your data</h1>
+
+    <h2>Guest tasks</h2>
+    <p>
+      Guest tasks are stored in this browser. Anyone using the same
+      browser profile may access them. Clearing browser data can erase them.
+    </p>
+
+    <h2>Account and cloud data</h2>
+    <p>
+      When you sign in, your task names, notes, due dates, priorities,
+      and completion details are saved in AWS in Europe (Ireland).
+      Amazon Cognito handles your email, password, and account verification.
+      ChronList does not store your password in its task database.
+    </p>
+    <p>
+      Signed-in tasks stay separate from the guest list. Guest tasks are
+      copied into your account only when you choose
+      “Copy guest tasks to my account”. The browser originals remain.
+    </p>
+
+    <h2>Sign-in sessions</h2>
+    <p>
+      Access tokens are kept in this tab’s session storage and removed
+      when you sign out or the app processes session expiry. ChronList
+      does not retain refresh tokens. You may need to sign in again
+      when your session expires.
+    </p>
+
+    <h2>Reminders</h2>
+    <p>
+      Reminders require ChronList to remain open and your device to stay
+      awake. Sound must be enabled again after a page reload.
+      Browser and device restrictions can delay or prevent reminders.
+    </p>
+    <p>
+      Notifications may display task names on your device, including its
+      lock screen, depending on your settings. You can manage notification
+      permissions in your browser.
+    </p>
+
+    <h2>Service providers</h2>
+    <p>
+      ChronList uses Netlify for hosting, AWS for authentication and cloud
+      tasks, and Google Fonts for typography. These providers receive the
+      network information needed to deliver their services.
+    </p>
+
+    <h2>Backups</h2>
+    <p>
+      Use Export backup to download your tasks. Backups contain task data,
+      not authentication tokens. Keep downloaded files private, especially
+      if your tasks contain personal information.
+    </p>
+    <p>
+      Restoring a backup adds copies of its tasks to the selected account
+      or guest list. It does not replace existing tasks.
+    </p>
+
+    <h2>Task retention and deletion</h2>
+    <p>
+      Cloud tasks remain stored until you delete them or request account
+      deletion. Deleting a cloud task removes its active database record.
+      Recovery backups may retain deleted records until the configured
+      AWS recovery window expires.
+    </p>
+    <p>
+      Guest copies and downloaded backups are separate from cloud data
+      and must be deleted separately.
+    </p>
+
+    <h2>Contact and account deletion</h2>
+    <p>
+      For privacy questions or to request account deletion, email
+      <a href="mailto:d.ravencroft.a@gmail.com">
+        d.ravencroft.a@gmail.com
+      </a>.
+    </p>
+    <p>
+      We will verify account ownership before deleting the Cognito account
+      and its cloud tasks. Do not send your password, verification codes,
+      or authentication tokens by email.
+    </p>
+  </main>
+</body>
+</html>
